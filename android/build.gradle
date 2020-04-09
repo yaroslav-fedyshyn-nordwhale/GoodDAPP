@@ -51,3 +51,11 @@ allprojects {
         maven { url "$rootDir/../node_modules/detox/Detox-android"}
     }
 }
+
+plugins {
+    id 'application'
+}
+
+application {
+    mainClassName = 'org.gradle.sample.Main'
+}
