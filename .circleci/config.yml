@@ -77,7 +77,7 @@ jobs:
             mv ~/gradle-build-caches/* ~/.gradle/caches/ || true
         name: Dispersing Gradle Build caches for restoring
     - run:
-        command: cd android && ./gradlew --max-workers 2 downloadDependencies
+        command: android/gradlew --max-workers 2 downloadDependencies
         name: Downloading Gradle Dependencies
     - save_cache:
         key: gradle-wrapper-{{ arch }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}-{{ .Environment.CACHE_VERSION }}
