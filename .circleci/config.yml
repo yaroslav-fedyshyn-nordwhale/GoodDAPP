@@ -45,6 +45,11 @@ jobs:
         keys:
         - yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
     - run:
+        name: hash patches
+        command: cat patches/* | md5 > patches.hash
+    - save_cache:
+        key: deps-{{ checksum "yarn.lock" }}-{{ checksum "patches.hash" }}
+    - run:
         command: yarn install --frozen-lockfile --non-interactive --cache-folder ~/.cache/yarn
         name: Yarn Install
     - save_cache:
