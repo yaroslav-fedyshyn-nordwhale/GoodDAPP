@@ -35,8 +35,7 @@
     "web:serveo": "export REACT_APP_WEB3_RPC=https://gdchain.serveo.net;export REACT_APP_SERVER_URL=https://gdserver.serveo.net;export REACT_APP_GUN_PUBLIC_URL=https://gdserver.serveo.net/gun;npm run web:local",
     "version": "auto-changelog -p && git add CHANGELOG.md",
     "cypress:lin": "export NODE_ENV=development && npx cypress open",
-    "cypress:win": "set \"NODE_ENV=development\" && npx cypress open",
-    "postinstall": "patch-package"
+    "cypress:win": "set \"NODE_ENV=development\" && npx cypress open"
   },
   "repository": {
     "type": "git",
@@ -110,7 +109,6 @@
     "moment": "^2.24.0",
     "node-libs-react-native": "^1.0.3",
     "numeral": "^2.0.6",
-    "patch-package": "^6.2.0",
     "path-browserify": "0.0.0",
     "pino": "^5.12.6",
     "process": "^0.11.10",
