@@ -45,6 +45,9 @@ jobs:
         keys:
         - yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
     - run:
+        name: Install md5
+        command: yarn add md5
+    - run:
         name: hash patches
         command: cat patches/* | md5 > patches.hash
     - save_cache:
