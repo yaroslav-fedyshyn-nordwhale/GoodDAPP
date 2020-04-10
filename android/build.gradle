@@ -52,7 +52,7 @@ allprojects {
     }
 }
 
-task downloadDependencies() {
+tasks.register("downloadDependencies") {
   description 'Download all dependencies to the Gradle cache'
   doLast {
     configurations.findAll().each { config ->
