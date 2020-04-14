@@ -90,10 +90,9 @@ jobs:
         paths:
         - ~/.gradle/caches/
     - run:
-        command: ./node_modules/.bin/react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
-        name: Build Assets
+        command: cd android && ./gradlew clean
     - run:
-        command: cd android && chmod +x gradlew && ./gradlew --build-cache --max-workers 2 --continue assemblerelease assembleAndroidTest -DtestBuildType=release --stacktrace
+        command: cd android && chmod +x gradlew && ./gradlew --build-cache --max-workers 2 --continue assembleRelease assembleAndroidTest -DtestBuildType=release --stacktrace
         name: Build Android APK
     - run:
         command: |
