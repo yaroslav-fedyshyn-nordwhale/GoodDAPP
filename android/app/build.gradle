@@ -80,8 +80,6 @@ def isTesting = new Boolean(System.getenv('TEST_REACT_NATIVE'))
 
 project.ext.react = [
     entryFile: "index.js",
-    bundleInStaging: true,
-    bundleInInternalTest: true,
     enableHermes: false,  // clean and rebuild if changing
 ]
 
