@@ -27,4 +27,5 @@ module.exports = {
     }),
     assetPlugins: ['react-native-svg-asset-plugin'],
   },
+  maxWorkers: 2,
 };
