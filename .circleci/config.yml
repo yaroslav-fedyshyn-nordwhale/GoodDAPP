@@ -114,8 +114,8 @@ jobs:
     - store_artifacts:
         path: android/app/build/outputs/apk
     environment:
-    - _JAVA_OPTIONS: -Xms512m -Xmx2g
-    - GRADLE_OPTS: -Xmx3g -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx2g -XX:+HeapDumpOnOutOfMemoryError"
+    - _JAVA_OPTIONS: -Xmx1024m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+    - GRADLE_OPTS: -Xmx2014m -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+UnlockExperimentalVMOptions -XX:+HeapDumpOnOutOfMemoryError"
   rn/android_test:
     macos:
       xcode: 11.0.0
