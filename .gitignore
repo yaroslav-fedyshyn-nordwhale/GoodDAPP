@@ -59,8 +59,6 @@ buck-out/
 /ios/Pods/
 
 # Sentry
-android/sentry.properties
-ios/sentry.properties
 
 # Others
 .env
