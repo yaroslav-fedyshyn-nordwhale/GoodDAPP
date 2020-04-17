@@ -36,16 +36,6 @@ jobs:
     - attach_workspace:
         at: .
     - run:
-        name: Install node@10.15.3
-        command: |
-          export NVM_DIR="/opt/circleci/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm install v10.15.3
-          nvm alias default v10.15.3
-    - run:
-        name: Verify node version
-        command: node --version
-    - run:
         command: |
           mkdir -p ~/.tmp/checksumfiles
           find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
