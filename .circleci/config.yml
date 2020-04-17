@@ -137,8 +137,18 @@ jobs:
         key: |
           brew-cache-{{ arch }}-{{ .Environment.CACHE_VERSION }}
     - run:
-        command: "set +e         \ntouch $BASH_ENV    \ncurl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash\necho 'export NVM_DIR=\"$HOME/.nvm\"' >> $BASH_ENV\necho '[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"' >> $BASH_ENV\necho nvm install 10 >> $BASH_ENV\necho nvm alias default 10 >> $BASH_ENV\n"
-        name: Install node@10
+        name: Install node@10.15.3
+        command: |
+          set +e
+          curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash
+          export NVM_DIR="/opt/circleci/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install v10.15.3
+          nvm alias default v10.15.3
+
+          # Each step uses the same `$BASH_ENV`, so need to modify it
+          echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
+          echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
     - run:
         command: node --version
         name: Verify node version
