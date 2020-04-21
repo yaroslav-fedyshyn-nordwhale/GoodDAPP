@@ -8,6 +8,7 @@ jobs:
       - checkout
       - run: npm i -g envinfo && envinfo
       - run: yarn install
+      - run: cd android && chmod +x gradlew && ./gradlew clean
       - run: cd android && chmod +x gradlew && ./gradlew assembleRelease
 
 workflows:
