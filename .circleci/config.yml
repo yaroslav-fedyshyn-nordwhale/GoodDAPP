@@ -30,7 +30,7 @@ jobs:
     - PATH: /opt/yarn/yarn-v1.5.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
   build_android_release:
     docker:
-    - image: reactnativecommunity/react-native-android
+    - image: entria/react-native-android
     resource_class: medium
     steps:
     - attach_workspace:
