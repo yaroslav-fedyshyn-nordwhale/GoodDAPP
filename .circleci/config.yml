@@ -5,7 +5,7 @@ jobs:
     docker:
       - image: reactnativecommunity/react-native-android
     steps:
-      - environment:
+      environment:
           - _JAVA_OPTIONS: -Xms512m -Xmx2g
           - GRADLE_OPTS: -Xmx3g -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx2g -XX:+HeapDumpOnOutOfMemoryError"
       - checkout
