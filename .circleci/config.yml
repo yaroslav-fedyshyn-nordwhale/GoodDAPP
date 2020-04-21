@@ -90,7 +90,7 @@ jobs:
           paths:
             - ~/.gradle/caches/
       - run:
-          command: cd android && chmod +x gradlew && ./gradlew assembleRelease
+          command: cd android && chmod +x gradlew && ./gradlew assembleRelease --stacktrace
           name: Build Android APK
       - run:
           command: |
