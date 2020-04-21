@@ -1,21 +1,239 @@
 version: 2
 jobs:
-  android:
-    working_directory: ~/repo
+  checkout_code:
     docker:
-      - image: reactnativecommunity/react-native-android
+      - image: circleci/node:10
+    resource_class: medium
     steps:
       - checkout
-      - run: npm i -g envinfo && envinfo
-      - run: yarn install
-      - run: cd android && chmod +x gradlew && ./gradlew clean
-      - run: cd android && chmod +x gradlew && ./gradlew assembleRelease
+      - persist_to_workspace:
+          root: .
+          paths: .
+      - run:
+          command: |
+            mkdir -p ~/.tmp/checksumfiles
+            find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
+            find . -type f -name 'yarn.lock' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/yarn.lock
+          name: Create cache checksum file
+      - restore_cache:
+          keys:
+            - yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          command: yarn install --frozen-lockfile --non-interactive --cache-folder ~/.cache/yarn
+          name: Yarn Install
+      - save_cache:
+          key: |
+            yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+          paths:
+            - ~/.cache/yarn
     environment:
-      - _JAVA_OPTIONS: -Xms512m -Xmx2g
-      - GRADLE_OPTS: -Xmx3g -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx2g -XX:+HeapDumpOnOutOfMemoryError"
-
+      - PATH: /opt/yarn/yarn-v1.5.1/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+  build_android_release:
+    docker:
+      - image: entria/react-native-android
+    resource_class: medium
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          command: |
+            mkdir -p ~/.tmp/checksumfiles
+            find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
+            find . -type f -name 'yarn.lock' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/yarn.lock
+          name: Create cache checksum file
+      - restore_cache:
+          keys:
+            - yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          command: yarn install --frozen-lockfile --non-interactive --cache-folder ~/.cache/yarn
+          name: Yarn Install
+      - save_cache:
+          key: |
+            yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+          paths:
+            - ~/.cache/yarn
+      - run:
+          command: |
+            mkdir -p ~/.tmp/checksumfiles
+            find . -type f -name 'build.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/build.gradle
+            find . -type f -name 'settings.gradle' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/settings.gradle
+          name: Create cache checksum files
+      - restore_cache:
+          keys:
+            - gradle-wrapper-{{ arch }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}-{{ .Environment.CACHE_VERSION }}
+      - restore_cache:
+          keys:
+            - gradle-home-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}-{{ .Environment.CACHE_VERSION }}
+      - restore_cache:
+          keys:
+            - gradle-build-cache-{{ .Revision }}
+          name: Restoring Gradle Build caches
+      - run:
+          command: |
+            [ -d ~/gradle-build-caches ] &&
+              [ -n "$(ls -A ~/gradle-build-caches)" ] &&
+              rm -rf ~/.gradle/caches/build-cache-* &&
+              mkdir -p ~/.gradle/caches/ &&
+              mv ~/gradle-build-caches/* ~/.gradle/caches/ || true
+          name: Dispersing Gradle Build caches for restoring
+      - run:
+          command: cd android && ./gradlew --max-workers 2 downloadDependencies
+          name: Downloading Gradle Dependencies
+      - save_cache:
+          key: gradle-wrapper-{{ arch }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}-{{ .Environment.CACHE_VERSION }}
+          name: Saving Gradle wrapper cache
+          paths:
+            - ~/.gradle/wrapper/
+      - save_cache:
+          key: gradle-home-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/build.gradle" }}-{{ checksum "~/.tmp/checksumfiles/settings.gradle" }}-{{ .Environment.CACHE_VERSION }}
+          name: Saving Gradle home cache
+          paths:
+            - ~/.gradle/caches/
+      - run:
+          command: cd android && chmod +x gradlew && ./gradlew assembleRelease
+          name: Build Android APK
+      - run:
+          command: |
+            mkdir -p ~/gradle-build-caches
+            [ -d ~/.gradle/caches ] &&
+              [ -n "$(ls -Ad ~/.gradle/caches/build-cache-* 2>/dev/null)" ] &&
+              rm -rf ~/gradle-build-caches/* &&
+              mv ~/.gradle/caches/build-cache-* ~/gradle-build-caches || true
+          name: Collecting Gradle Build caches for saving
+          when: always
+      - save_cache:
+          key: gradle-debug-build-cache-{{ .Revision }}
+          name: Saving Gradle Build caches
+          paths:
+            - ~/gradle-build-caches
+          when: always
+      - persist_to_workspace:
+          paths:
+            - android/app/build/outputs/apk
+          root: .
+      - store_artifacts:
+          path: android/app/build/outputs/apk
+    environment:
+      - _JAVA_OPTIONS: -Xmx1024m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+      - GRADLE_OPTS: -Xmx2014m -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+UnlockExperimentalVMOptions -XX:+HeapDumpOnOutOfMemoryError"
+  rn/android_test:
+    macos:
+      xcode: 11.0.0
+    resource_class: medium
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          command: |
+            echo 'export PATH="$PATH:/usr/local/opt/node@10/bin:~/.yarn/bin:~/project/node_modules/.bin:~/project/example/node_modules/.bin"' >> $BASH_ENV
+            echo 'export ANDROID_HOME="/usr/local/share/android-sdk"' >> $BASH_ENV
+            echo 'export ANDROID_SDK_ROOT="/usr/local/share/android-sdk"' >> $BASH_ENV
+            echo 'export PATH="$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/tools:$ANDROID_SDK_ROOT/platform-tools:$PATH"' >> $BASH_ENV
+            echo 'export QEMU_AUDIO_DRV=none' >> $BASH_ENV
+            echo 'export JAVA_HOME=/Library/Java/Home' >> $BASH_ENV
+            source $BASH_ENV
+          name: Configure Environment Variables
+      - restore_cache:
+          key: |
+            brew-cache-{{ arch }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          name: Install node@10.15.3
+          command: |
+            set +e
+            touch $BASH_ENV
+            curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.5/install.sh | bash
+            echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+            echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $BASH_ENV
+            echo 'nvm install 10.15.3' >> $BASH_ENV
+            echo 'nvm alias default 10.15.3' >> $BASH_ENV
+      - run:
+          command: node --version
+          name: Verify node version
+      - run:
+          command: |
+            HOMEBREW_NO_AUTO_UPDATE=1 brew tap wix/brew >/dev/null
+            HOMEBREW_NO_AUTO_UPDATE=1 brew tap homebrew/cask >/dev/null
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install applesimutils >/dev/null
+            HOMEBREW_NO_AUTO_UPDATE=1 brew cask install android-sdk >/dev/null
+            touch .watchmanconfig
+            node -v
+          name: Configure Detox Environment
+      - save_cache:
+          key: |
+            brew-cache-{{ arch }}-{{ .Environment.CACHE_VERSION }}
+          paths:
+            - /usr/local/Homebrew
+            - ~/Library/Caches/Homebrew
+      - run:
+          command: |
+            mkdir -p ~/.tmp/checksumfiles
+            find . -type f -name 'package.json' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/package.json
+            find . -type f -name 'yarn.lock' -not -path "*node_modules*" -exec cat {} + >> ~/.tmp/checksumfiles/yarn.lock
+          name: Create cache checksum file
+      - restore_cache:
+          keys:
+            - yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+      - run:
+          command: yarn install --frozen-lockfile --non-interactive --cache-folder ~/.cache/yarn
+          name: Yarn Install
+      - save_cache:
+          key: |
+            yarn-cache-{{ arch }}-{{ checksum "~/.tmp/checksumfiles/package.json" }}-{{ checksum "~/.tmp/checksumfiles/yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
+          paths:
+            - ~/.cache/yarn
+      - run:
+          command: |
+            yes | sdkmanager "platform-tools" "tools" >/dev/null
+            yes | sdkmanager "platforms;android-28" "system-images;android-28;google_apis;x86" >/dev/null
+            yes | sdkmanager "emulator" --channel=3 >/dev/null
+            yes | sdkmanager "build-tools;28.0.3" >/dev/null
+            yes | sdkmanager --licenses >/dev/null
+            yes | sdkmanager --list
+          name: Install Android Emulator
+          shell: /bin/bash -e
+      - run:
+          command: |
+            adb start-server
+            adb devices
+            adb kill-server
+            ls -la ~/.android
+          name: ADB Start Stop
+      - run:
+          command: avdmanager create avd --force -n TestingAVD -k "system-images;android-28;google_apis;x86" -g google_apis -d "Nexus 4"
+          name: Create Android Emulator
+      - run:
+          background: true
+          command: |
+            /usr/local/share/android-sdk/emulator/emulator @TestingAVD -version
+            /usr/local/share/android-sdk/emulator/emulator @TestingAVD -skin 470x860 -cores 1 -gpu auto -accel on -memory 1024 -no-audio -no-snapshot -no-boot-anim -no-window -logcat *:W | grep -i 'ReactNative\|com.reactnativecommunity'
+          name: Start Android Emulator (background)
+      - run:
+          command: |
+            export BOOT=""
+            echo "Waiting for AVD to finish booting"
+            export PATH=$(dirname $(dirname $(command -v android)))/platform-tools:$PATH
+            until [[ "$BOOT" =~ "1" ]]; do
+              sleep 5
+              export BOOT=$(adb -e shell getprop sys.boot_completed 2>&1)
+            done
+            sleep 15
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            echo "Android Virtual Device is now ready."
+          name: Wait for AVD to be ready
+          no_output_timeout: 5m
+      - run:
+          command: detox test -c android.emu.release -l warn --headless
+          name: Detox Test
 workflows:
-  version: 2
-  build_and_test:
+  test:
     jobs:
-      - android
+      - checkout_code
+      - build_android_release:
+          requires:
+            - checkout_code
+      - rn/android_test:
+          requires:
+            - build_android_release
+  version: 2
