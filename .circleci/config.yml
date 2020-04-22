@@ -93,7 +93,7 @@ jobs:
           command: cd android && chmod +x gradlew && ./gradlew clean
           name: Clean Gradlew
       - run:
-          command: cd android && chmod +x gradlew && ./gradlew assembleRelease --stacktrace --info --scan
+          command: cd android && chmod +x gradlew && ./gradlew assembleRelease --stacktrace --info
           name: Build Android APK
       - run:
           command: |
