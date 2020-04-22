@@ -93,7 +93,7 @@
     "customize-cra": "^0.9.1",
     "dns.js": "^1.0.1",
     "ethereumjs-util": "^6.1.0",
-    "ethereumjs-wallet": "^0.6.3",
+    "ethereumjs-wallet": "git://github.com/dmihal/ethereumjs-wallet.git#use-scrypt-shim",
     "events": "^1.1.1",
     "gun": "git+https://github.com/GoodDollar/gun.git#master",
     "hdkey": "^1.1.1",
